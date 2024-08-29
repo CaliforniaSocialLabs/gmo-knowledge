@@ -1,0 +1,199 @@
+---
+title: "figures"
+author: "Clint McKenna"
+date: "08/28/2023"
+output: html_document
+---
+
+# data prep
+```{r}
+# load packages
+library(tidyverse)
+
+# read in data
+dat <- read_csv('../data/dat.csv')
+
+# set font for figures
+windowsFonts(tnr = windowsFont('Times New Roman'))
+windowsFonts(rbt = windowsFont('Roboto'))
+windowsFonts(fra = windowsFont('Fira Sans'))
+
+# color palette
+redBlue <- c('#407EC9', '#CE3333')
+cslPal <- c(
+  '#CE3333',  # red
+  '#E8A03E',  # orange
+  '#c2c4c4',  # grey
+  '#083D77',  # blackish
+  '#407EC9',  # blue
+  '#17C3B2',  # green
+  '#593C8F'   # purple
+  )
+
+```
+
+
+# bad health ~ gmo benefits
+```{r}
+
+# plot
+p <- dat %>%
+  # ggplot(., aes(x = gmoBenefits, y = gmoHealthBad01, group = gmoHealthBad01, fill = gmoHealthBad01)) +
+  ggplot(., aes(x = gmoBenefits, y = gmoHealthBad01)) +
+    geom_point(size = 2, alpha = .2,
+               position = position_jitter(height = 0.075, width = 0.2)) +
+    stat_smooth(method = 'glm', 
+                method.args = list(family = 'binomial'), 
+                formula = y ~ x, 
+                alpha = 0.3, size = 1, 
+                color = cslPal[1], fill = cslPal[1],
+                aes(alpha = .8)) +
+    # scale_fill_manual(values = cslPal) +
+    scale_y_continuous(breaks = c(0, .25, .5, .75, 1)) +
+    labs( 
+      title = 'Belief in GMO Benefits Generally Predicts \nLower Health Concerns',
+      x = 'Belief in GMO Benefits',
+      y = 'Pr(Belief in Health Problems)',
+      fill = NULL,
+      color = NULL,
+      caption = '\nCalifornia Social Labs\nData from Pew Research ATP'
+    ) +
+  theme_bw() +
+  theme(
+        text = element_text(family = 'fra', size = 20),
+        title = element_text(size = 18),
+        # plot.title = element_text(margin = margin(0, 0, 20, 0)),
+        plot.caption = element_text(hjust = 0, color = '#7e7e7e'),
+        axis.title.x = element_text(margin = margin(15, 0, 0, 0)),
+        axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.background = element_rect(fill = 'white'),
+        # legend.key = element_rect(size = 5, color = 'white'),
+        # legend.key.size = unit(2.5, 'lines'),
+        # legend.position = 'none',
+        panel.spacing = unit(1.5, 'lines'))
+
+# save to file
+png('../figures/p1.png', units = 'in', width = 8, height = 7, res = 750)
+plot(p)
+dev.off()
+
+
+
+```
+
+
+# health ~ benefits x knowledge
+```{r}
+
+# data
+knowM <- mean(dat$sciKnowledge)
+knowSD <-  sd(dat$sciKnowledge)
+tmp <- dat %>%
+  mutate(sciCat = case_when(
+    sciKnowledge > (knowM+knowSD) ~ 'High Knowledge',
+    sciKnowledge < (knowM-knowSD) ~ 'Low Knowledge',
+    TRUE ~ NA_character_)) %>%
+  na.omit()
+
+# plot
+p <- tmp %>%
+  ggplot(., aes(x = gmoBenefits, y = gmoHealthBad01,
+                group = sciCat, color = sciCat, fill = sciCat)) +
+    geom_point(size = 2, alpha = .25,
+               position = position_jitter(height = 0.075, width = 0.2)) +
+    stat_smooth(method = 'glm', 
+                method.args = list(family = 'binomial'), 
+                formula = y ~ x, 
+                alpha = 0.3, size = 1, 
+                # color = cslPal[1], fill = cslPal[1],
+                aes(alpha = .8)) +
+    scale_fill_manual(values = c(cslPal[4], cslPal[2])) +
+    scale_color_manual(values = c(cslPal[4], cslPal[2])) +
+    scale_y_continuous(breaks = c(0, .25, .5, .75, 1)) +
+    labs( 
+      title = 'Benefit-Harm Link is Stronger Among\nHigher Knowledge',
+      x = 'Belief in GMO Benefits',
+      y = 'Pr(Belief in Health Problems)',
+      fill = NULL,
+      color = NULL,
+      caption = '\nCalifornia Social Labs\nData from Pew Research ATP'
+    ) +
+  theme_bw() +
+  theme(
+        text = element_text(family = 'fra', size = 20),
+        title = element_text(size = 18),
+        # plot.title = element_text(margin = margin(0, 0, 20, 0)),
+        plot.caption = element_text(hjust = 0, color = '#7e7e7e'),
+        axis.title.x = element_text(margin = margin(15, 0, 0, 0)),
+        axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.background = element_rect(fill = 'white'),
+
+        legend.position = 'bottom',
+      legend.key.size = unit(2.5, 'lines'),
+     panel.spacing = unit(2, 'lines'),
+     plot.margin = margin(t = 20, r = 20, b = 20, l = 20, unit = 'pt'))
+
+# save to file
+png('../figures/p2.png', units = 'in', width = 8, height = 8, res = 750)
+plot(p)
+dev.off()
+
+
+
+```
+
+
+# health ~ trust
+```{r}
+
+# plot
+p <- dat %>%
+  # ggplot(., aes(x = gmoBenefits, y = gmoHealthBad01, group = gmoHealthBad01, fill = gmoHealthBad01)) +
+  ggplot(., aes(x = trust, y = gmoHealthBad01)) +
+    geom_point(size = 2, alpha = .2,
+               position = position_jitter(height = 0.075, width = 0.2)) +
+    stat_smooth(method = 'glm', 
+                method.args = list(family = 'binomial'), 
+                formula = y ~ x, 
+                alpha = 0.3, size = 1, 
+                color = cslPal[1], fill = cslPal[1],
+                aes(alpha = .8)) +
+    # scale_fill_manual(values = cslPal) +
+    scale_y_continuous(breaks = c(0, .25, .5, .75, 1)) +
+    labs( 
+      title = 'Trust Slightly Predicts Lower\nHealth Concerns',
+      x = 'Trust Index',
+      y = 'Pr(Belief in Health Problems)',
+      fill = NULL,
+      color = NULL,
+      caption = '\nCalifornia Social Labs\nData from Pew Research ATP'
+    ) +
+  theme_bw() +
+  theme(
+        text = element_text(family = 'fra', size = 20),
+        title = element_text(size = 18),
+        # plot.title = element_text(margin = margin(0, 0, 20, 0)),
+        plot.caption = element_text(hjust = 0, color = '#7e7e7e'),
+        axis.title.x = element_text(margin = margin(15, 0, 0, 0)),
+        axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.background = element_rect(fill = 'white'),
+        # legend.key = element_rect(size = 5, color = 'white'),
+        # legend.key.size = unit(2.5, 'lines'),
+        # legend.position = 'none',
+        panel.spacing = unit(1.5, 'lines'))
+
+# save to file
+png('../figures/p3.png', units = 'in', width = 8, height = 7, res = 750)
+plot(p)
+dev.off()
+
+
+
+```
+

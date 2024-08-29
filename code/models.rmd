@@ -1,0 +1,53 @@
+---
+title: "figures"
+author: "Clint McKenna"
+date: "08/28/2023"
+output: html_document
+---
+
+# data prep
+```{r}
+# load packages
+library(jtools)
+library(interactions)
+library(tidyverse)
+
+# read in data
+datRaw <- read_sav('../data/ATP W17.sav') 
+dat <- read_csv('../data/dat.csv')
+
+# grab only used Ss from datRaw
+subs <- dat %>% select(subject)
+datRaw <- datRaw %>%
+  mutate(subject = QKEY) %>%
+  left_join(subs, ., by = 'subject')
+
+```
+
+# descriptives
+```{r}
+# age
+table(datRaw$F_AGECAT_FINAL)
+cat('18-29: ', round(174/1403, 3), '\n')
+cat('30-49: ', round(414/1403, 3), '\n')
+cat('50-64: ', round(406/1403, 3), '\n')
+cat('65+: ', round(408/1403, 3), '\n')
+
+# gender
+table(datRaw$F_SEX_FINAL)
+cat('Male: ', round(677/1403, 3), '\n')
+cat('Female: ', round(726/1403, 3), '\n')
+
+
+```
+
+# interaction
+```{r}
+# model
+m <- glm(gmoHealthBad01 ~ gmoBenefits*sciKnowledge, family=binomial, data = dat)
+summ(m, digits = 3, exp = TRUE)
+
+# probe interaction
+interactions::probe_interaction(m, pred='gmoBenefits', modx = 'sciKnowledge', digits = 3)
+
+```

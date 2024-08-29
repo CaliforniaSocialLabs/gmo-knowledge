@@ -1,0 +1,190 @@
+---
+title: "dataPrep"
+author: "Clint McKenna"
+date: "08/28/2023"
+output: html_document
+---
+
+# data prep
+```{r}
+
+# load packages
+library(haven)
+library(tidyverse)
+
+# custom functions
+## dplyr select
+select <- dplyr::select
+
+# read in data
+dat <- read_sav('../data/ATP W17.sav') 
+# 
+# # select vars
+# dat <- dat %>%
+#   
+#   
+# # subject var
+# dat <- dat %>%
+#   mutate(subject = 1:n())
+# 
+# # remove clutter
+
+
+```
+
+# code vars
+
+## GMO
+```{r}
+# select gmo vars
+gmo <- dat %>%
+  transmute(subject = QKEY, 
+            gmoHealth_init = FUD33A_W17, 
+            gmoHealth_lean = FUD33B_W17,
+            afford = FUD37A_W17,
+            healthProbs = FUD37B_W17,
+            environmentProbs = FUD37C_W17,
+            increaseSupply = FUD37D_W17)
+
+# gmo health lean
+gmo <- gmo %>%
+  mutate(gmoHealthBad = case_when(
+    # initial belief
+    gmoHealth_init == 1 ~ 1,
+    gmoHealth_init == 3 ~ 3,
+    gmoHealth_init == 2 ~ 5,
+    # if unsure, lean belief
+    gmoHealth_init == 8 & gmoHealth_lean == 1 ~ 2,
+    gmoHealth_init == 8 & gmoHealth_lean == 2 ~ 4,
+    gmoHealth_init == 8 & gmoHealth_lean == 3 ~ 3,
+    TRUE ~ NA_real_)) %>%
+  mutate(gmoHealthBad01 = case_when(
+    gmoHealthBad == 5 ~ 1,
+    gmoHealthBad == 4 ~ 1,
+    gmoHealthBad == 3 ~ 0,
+    gmoHealthBad == 2 ~ 0,
+    gmoHealthBad == 1 ~ 0,
+    TRUE ~ NA_real_))
+
+# gmo benefits
+gmo <- gmo %>%
+  mutate(afford = case_when(
+    afford == 4 ~ 1,
+    afford == 3 ~ 2,
+    afford == 2 ~ 3,
+    afford == 1 ~ 4,
+    TRUE ~ NA_real_)) %>%
+  mutate(healthProbsR = case_when(
+    healthProbs == 4 ~ 4,
+    healthProbs == 3 ~ 3,
+    healthProbs == 2 ~ 2,
+    healthProbs == 1 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(environmentProbsR = case_when(
+    environmentProbs == 4 ~ 4,
+    environmentProbs == 3 ~ 3,
+    environmentProbs == 2 ~ 2,
+    environmentProbs == 1 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(increaseSupply = case_when(
+    increaseSupply == 4 ~ 1,
+    increaseSupply == 3 ~ 2,
+    increaseSupply == 2 ~ 3,
+    increaseSupply == 1 ~ 4,
+    TRUE ~ NA_real_)) %>%
+  mutate(gmoBenefits = rowMeans(
+    # .[,c('afford', 'healthProbsR', 'environmentProbsR', 'increaseSupply')]))
+    .[,c('afford', 'environmentProbsR', 'increaseSupply')]))
+  
+# keep only outcome vars
+gmo <- gmo %>%
+  select(subject, gmoHealthBad, gmoHealthBad01, gmoBenefits)
+
+
+```
+
+
+## sci knowledge
+```{r}
+# grab knowledge vars
+know <- dat %>%
+  transmute(subject = QKEY, 
+            sciKnowledge = as.numeric(KNOSCT_INDEX_W17))
+
+```
+
+## trust
+```{r}
+# grab trust vars
+trust <- dat %>%
+  transmute(subject = QKEY, 
+            trust1 = FUD40A_W17,
+            trust2 = FUD40B_W17,
+            trust3 = FUD40C_W17,
+            trust4 = FUD40D_W17,
+            trust5 = FUD40E_W17) 
+
+# recode trust scores
+trust <- trust %>%
+  mutate(trust1 = case_when(
+    trust1 == 1 ~ 4,
+    trust1 == 2 ~ 3,
+    trust1 == 3 ~ 2,
+    trust1 == 4 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(trust2 = case_when(
+    trust2 == 1 ~ 4,
+    trust2 == 2 ~ 3,
+    trust2 == 3 ~ 2,
+    trust2 == 4 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(trust3 = case_when(
+    trust3 == 1 ~ 4,
+    trust3 == 2 ~ 3,
+    trust3 == 3 ~ 2,
+    trust3 == 4 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(trust4 = case_when(
+    trust4 == 1 ~ 4,
+    trust4 == 2 ~ 3,
+    trust4 == 3 ~ 2,
+    trust4 == 4 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(trust5 = case_when(
+    trust5 == 1 ~ 4,
+    trust5 == 2 ~ 3,
+    trust5 == 3 ~ 2,
+    trust5 == 4 ~ 1,
+    TRUE ~ NA_real_)) %>%
+  mutate(trust = rowMeans(
+    .[,c('trust1', 'trust2', 'trust3', 'trust4', 'trust5')]))
+  
+  
+# grab summary vars
+trust <- trust %>%
+  select(subject, trust)
+
+
+```
+
+# combine and write to file
+```{r}
+# combine gmo, sci knowledge, and trust
+dat <- left_join(gmo, know, by = 'subject')
+dat <- left_join(dat, trust, by = 'subject')
+
+# remove NA vals
+dat <- dat %>%
+  na.omit()
+
+# save to file
+write_csv(dat, '../data/dat.csv')
+
+```
+
+
+
+
+
+
+
