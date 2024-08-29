@@ -1,0 +1,1 @@
+Note: add "data" folder to directory, place ATP data from Pew Research, and run dataPrep.rmd to populate data folder.
